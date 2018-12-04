@@ -10,5 +10,9 @@ namespace turnLiteNet
         internal void Update()
         {
         }
+
+        internal void Connect()
+        {
+        }
     }
 }

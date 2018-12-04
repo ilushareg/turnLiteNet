@@ -10,5 +10,10 @@ namespace turnLiteNet
         internal void Update()
         {
         }
+
+        internal void Setup()
+        {
+
+        }
     }
 }
