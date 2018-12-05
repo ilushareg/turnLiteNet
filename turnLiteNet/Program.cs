@@ -33,6 +33,8 @@ namespace turnLiteNet
                     c.Update();
                 }
 
+                System.Threading.Thread.Sleep(500);
+                Console.Write('.');
             }
         }
     }
