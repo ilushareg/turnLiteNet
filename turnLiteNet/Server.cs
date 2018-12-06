@@ -1,4 +1,5 @@
-﻿using System.Net;
+﻿using System;
+using System.Net;
 using System.Net.Sockets;
 using LiteNetLib;
 using LiteNetLib.Utils;
@@ -11,9 +12,9 @@ namespace turnLiteNet
         private NetPeer _ourPeer;
         private NetDataWriter _dataWriter;
 
-        public void Server()
+        public Server()
         {
-
+            Start();
         }
 
         void Start()
@@ -25,7 +26,7 @@ namespace turnLiteNet
             _netServer.UpdateTime = 15;
         }
 
-        void Update()
+        public void Update()
         {
             _netServer.PollEvents();
         }
@@ -53,30 +54,22 @@ namespace turnLiteNet
             _ourPeer = peer;
         }
 
-        public void OnNetworkError(IPEndPoint endPoint, SocketError socketErrorCode)
+        public void OnNetworkError(NetEndPoint endPoint, int socketErrorCode)
         {
             Debug.Log("[SERVER] error " + socketErrorCode);
         }
 
-        public void OnNetworkReceiveUnconnected(IPEndPoint remoteEndPoint, NetPacketReader reader,
-            UnconnectedMessageType messageType)
+        public void OnNetworkReceiveUnconnected(NetEndPoint remoteEndPoint, NetDataReader reader, UnconnectedMessageType messageType)
         {
             if (messageType == UnconnectedMessageType.DiscoveryRequest)
             {
                 Debug.Log("[SERVER] Received discovery request. Send discovery response");
-                //_netServer.SendDiscoveryResponse(new byte[] { 1 }, remoteEndPoint);
-                LiteNetLib.NetEndPoint endPoint = new LiteNetLib.NetEndPoint(remoteEndPoint.Address.ToString(), remoteEndPoint.Port);
-                //_netServer.SendDiscoveryResponse(_dataWriter, (LiteNetLib.NetEndPoint)remoteEndPoint);
+                _netServer.SendDiscoveryResponse(new byte[] { 1 }, remoteEndPoint);
             }
         }
 
         public void OnNetworkLatencyUpdate(NetPeer peer, int latency)
         {
-        }
-
-        public void OnConnectionRequest(ConnectionRequest request)
-        {
-            request.AcceptIfKey("sample_app");
         }
 
         public void OnPeerDisconnected(NetPeer peer, DisconnectInfo disconnectInfo)
@@ -86,8 +79,9 @@ namespace turnLiteNet
                 _ourPeer = null;
         }
 
-        public void OnNetworkReceive(NetPeer peer, NetPacketReader reader, DeliveryMethod deliveryMethod)
+        public void OnNetworkReceive(NetPeer peer, NetDataReader reader)
         {
         }
+
     }
 }
