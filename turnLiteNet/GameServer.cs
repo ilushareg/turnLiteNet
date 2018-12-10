@@ -26,16 +26,16 @@ public class GameServer : MonoBehaviour, INetEventListener
         _netServer.PollEvents();
     }
 
-    void FixedUpdate()
-    {
-        if (_ourPeer != null)
-        {
-            _serverBall.transform.Translate(1f * Time.fixedDeltaTime, 0f, 0f);
-            _dataWriter.Reset();
-            _dataWriter.Put(_serverBall.transform.position.x);
-            _ourPeer.Send(_dataWriter, DeliveryMethod.Sequenced);
-        }
-    }
+    //void FixedUpdate()
+    //{
+    //    if (_ourPeer != null)
+    //    {
+    //        _serverBall.transform.Translate(1f * Time.fixedDeltaTime, 0f, 0f);
+    //        _dataWriter.Reset();
+    //        _dataWriter.Put(_serverBall.transform.position.x);
+    //        _ourPeer.Send(_dataWriter, DeliveryMethod.Sequenced);
+    //    }
+    //}
 
     void OnDestroy()
     {

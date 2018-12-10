@@ -3,13 +3,21 @@ using System.Net;
 using System.Net.Sockets;
 using LiteNetLib;
 using LiteNetLib.Utils;
+using System.Collections.Generic;
 
 namespace turnLiteNet
 {
     public class Server: INetEventListener
     {
+        static int MaxConnections = 2;
+
+        public const byte E_ALLOWED = 9;
+        public const byte E_NOTALLOWED_FULL = 10;
+
         private NetManager _netServer;
-        private NetPeer _ourPeer;
+        //private NetPeer _ourPeer;
+        List<NetPeer> _peersList = new List<NetPeer>();
+
         private NetDataWriter _dataWriter;
 
         public Server()
@@ -20,7 +28,9 @@ namespace turnLiteNet
         void Start()
         {
             _dataWriter = new NetDataWriter();
-            _netServer = new NetManager(this, "key");
+            _netServer = new NetManager(this, MaxConnections, "key");
+
+
             _netServer.Start(5000);
             _netServer.DiscoveryEnabled = true;
             _netServer.UpdateTime = 15;
@@ -33,7 +43,7 @@ namespace turnLiteNet
 
         void FixedUpdate()
         {
-            if (_ourPeer != null)
+            foreach(NetPeer p in _peersList)
             {
                 //_serverBall.transform.Translate(1f * Time.fixedDeltaTime, 0f, 0f);
                 //_dataWriter.Reset();
@@ -51,7 +61,8 @@ namespace turnLiteNet
         public void OnPeerConnected(NetPeer peer)
         {
             Debug.Log("[SERVER] We have new peer " + peer.EndPoint);
-            _ourPeer = peer;
+
+            _peersList.Add(peer);
         }
 
         public void OnNetworkError(NetEndPoint endPoint, int socketErrorCode)
@@ -63,8 +74,17 @@ namespace turnLiteNet
         {
             if (messageType == UnconnectedMessageType.DiscoveryRequest)
             {
-                Debug.Log("[SERVER] Received discovery request. Send discovery response");
-                _netServer.SendDiscoveryResponse(new byte[] { 1 }, remoteEndPoint);
+                if(_peersList.Count >= MaxConnections)
+                {
+                    //TODO: do we need to act differently if max connections reached?
+                    Debug.Log("[SERVER] Received discovery request. MaxConnections reached, do nothing");
+                    _netServer.SendDiscoveryResponse(new byte[] { E_NOTALLOWED_FULL }, remoteEndPoint);
+                }
+                else
+                {
+                    Debug.Log("[SERVER] Received discovery request. Send discovery response");
+                    _netServer.SendDiscoveryResponse(new byte[] { E_ALLOWED }, remoteEndPoint);
+                }
             }
         }
 
@@ -75,8 +95,8 @@ namespace turnLiteNet
         public void OnPeerDisconnected(NetPeer peer, DisconnectInfo disconnectInfo)
         {
             Debug.Log("[SERVER] peer disconnected " + peer.EndPoint + ", info: " + disconnectInfo.Reason);
-            if (peer == _ourPeer)
-                _ourPeer = null;
+            _peersList.RemoveAll(x => x == peer);
+
         }
 
         public void OnNetworkReceive(NetPeer peer, NetDataReader reader)

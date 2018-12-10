@@ -9,8 +9,12 @@ namespace turnLiteNet
 {
     public class Client : INetEventListener
     {
+        static int idCounter = 0;
+        int id = 0;
+
         public Client()
         {
+            id = idCounter++;
             Start();
         }
         private NetManager _netClient;
@@ -26,7 +30,17 @@ namespace turnLiteNet
 
         public void Update()
         {
+            if (_netClient == null)
+            {
+                return;
+            }
+
             _netClient.PollEvents();
+            if (_netClient == null)
+            {
+                return;
+            }
+
 
             var peer = _netClient.GetFirstPeer();
             if (peer != null && peer.ConnectionState == ConnectionState.Connected)
@@ -52,15 +66,15 @@ namespace turnLiteNet
         }
 
         public void OnPeerConnected(NetPeer peer)
+        
         {
-            Debug.Log("[CLIENT] We connected to " + peer.EndPoint);
+            Debug.Log(String.Format("[CLIENT {0}] We connected to " + peer.EndPoint, id));
         }
 
         public void OnNetworkError(NetEndPoint endPoint, int socketErrorCode)
         {
-            Debug.Log("[CLIENT] We received error " + socketErrorCode);
+            Debug.Log(String.Format("[CLIENT {0}] We received error " + socketErrorCode, id));
         }
-
         public void OnNetworkReceive(NetPeer peer, NetDataReader reader)
         {
             _newBallPosX = reader.GetFloat();
@@ -76,11 +90,33 @@ namespace turnLiteNet
 
         public void OnNetworkReceiveUnconnected(NetEndPoint remoteEndPoint, NetDataReader reader, UnconnectedMessageType messageType)
         {
+            if (_netClient == null)
+            {
+                //We're disabled //TODO: find a better approach for that... later
+                return;
+            }
+
+            Debug.Log(String.Format("[CLIENT {0}] OnNetworkReceiveUnconnected", id));
             if (messageType == UnconnectedMessageType.DiscoveryResponse && _netClient.PeersCount == 0)
             {
-                Debug.Log("[CLIENT] Received discovery response. Connecting to: " + remoteEndPoint);
-                _netClient.Connect(remoteEndPoint);
+                if (reader.AvailableBytes > 0)
+                {
+                    byte data = reader.GetByte();
+                    if (data == Server.E_ALLOWED)
+                    {
+                        Debug.Log(String.Format("[CLIENT {0}] Received discovery response. Connecting to: " + remoteEndPoint, id));
+                        _netClient.Connect(remoteEndPoint);
 
+                    }
+                    else if (data == Server.E_NOTALLOWED_FULL)
+                    {
+                        //stop doing anything by deleting _netClient
+                        Debug.Log(String.Format("[CLIENT {0}] Received discovery response. Not Allowed to connect FULL" + remoteEndPoint, id));
+                        _netClient = null;
+
+
+                    }
+                }
             }
         }
 
@@ -91,9 +127,9 @@ namespace turnLiteNet
 
         public void OnPeerDisconnected(NetPeer peer, DisconnectInfo disconnectInfo)
         {
-            Debug.Log("[CLIENT] We disconnected because " + disconnectInfo.Reason);
+            Debug.Log(String.Format("[CLIENT {0}] We disconnected because " + disconnectInfo.Reason, id));
 
-            Debug.Log("[CLIENT] We disconnected because socketErrorCode " + disconnectInfo.SocketErrorCode);
+            Debug.Log(String.Format("[CLIENT {0}] We disconnected because socketErrorCode " + disconnectInfo.SocketErrorCode, id));
         }
     }
 }
